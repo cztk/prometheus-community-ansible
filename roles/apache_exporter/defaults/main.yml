@@ -1,0 +1,27 @@
+---
+apache_exporter_version: 1.0.7
+apache_exporter_binary_local_dir: ""
+apache_exporter_binary_url: "https://github.com/{{ _apache_exporter_repo }}/releases/download/v{{ apache_exporter_version }}/\
+                          apache_exporter-{{ apache_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+apache_exporter_checksums_url: "https://github.com/{{ _apache_exporter_repo }}/releases/download/v{{ apache_exporter_version }}/\
+                          sha256sums.txt "
+apache_exporter_skip_install: false
+apache_exporter_scrape_uri: "http://localhost/server-status/?auto"
+apache_exporter_web_listen_address: "0.0.0.0:9117"
+apache_exporter_web_telemetry_path: "/metrics"
+
+apache_exporter_tls_server_config: {}
+
+apache_exporter_http_server_config: {}
+
+apache_exporter_basic_auth_users: {}
+
+apache_exporter_log_level: "info"
+apache_exporter_log_format: "logfmt"
+
+apache_exporter_binary_install_dir: "/usr/local/bin"
+apache_exporter_system_group: "apache-exp"
+apache_exporter_system_user: "{{ apache_exporter_system_group }}"
+
+# Local path to stash the archive and its extraction
+apache_exporter_archive_path: /tmp

@@ -1,0 +1,69 @@
+---
+- name: Create the apache_exporter group
+  ansible.builtin.group:
+    name: "{{ apache_exporter_system_group }}"
+    state: present
+    system: true
+  when: apache_exporter_system_group not in ["root", 'www-data', 'nogroup']
+
+- name: Create the apache_exporter user
+  ansible.builtin.user:
+    name: "{{ apache_exporter_system_user }}"
+    groups: "{{ apache_exporter_system_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    home: /
+  when: apache_exporter_system_user not in ["root", 'www-data', 'nobody']
+
+- name: Get binary
+  when:
+    - apache_exporter_binary_local_dir | length == 0
+    - not apache_exporter_skip_install
+  block:
+
+    - name: Download apache_exporter binary to local folder
+      become: false
+      ansible.builtin.get_url:
+        url: "{{ apache_exporter_binary_url }}"
+        dest: "{{ apache_exporter_archive_path }}/apache_exporter-{{ apache_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+        checksum: "sha256:{{ __apache_exporter_checksum }}"
+        mode: '0644'
+      register: _download_binary
+      until: _download_binary is succeeded
+      retries: 5
+      delay: 2
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Unpack apache_exporter binary
+      become: false
+      ansible.builtin.unarchive:
+        src: "{{ apache_exporter_archive_path }}/apache_exporter-{{ apache_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+        dest: "{{ apache_exporter_archive_path }}"
+        creates: "{{ apache_exporter_archive_path }}/apache_exporter-{{ apache_exporter_version }}.linux-{{ go_arch }}"
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Propagate apache_exporter binaries
+      ansible.builtin.copy:
+        src: "{{ apache_exporter_archive_path }}/apache_exporter-{{ apache_exporter_version }}.linux-{{ go_arch }}/apache_exporter"
+        dest: "{{ apache_exporter_binary_install_dir }}/apache_exporter"
+        mode: 0755
+        owner: root
+        group: root
+      notify: restart apache_exporter
+      when: not ansible_check_mode
+
+- name: Propagate locally distributed apache_exporter binary
+  ansible.builtin.copy:
+    src: "{{ apache_exporter_binary_local_dir }}/apache_exporter"
+    dest: "{{ apache_exporter_binary_install_dir }}/apache_exporter"
+    mode: 0755
+    owner: root
+    group: root
+  when:
+    - apache_exporter_binary_local_dir | length > 0
+    - not apache_exporter_skip_install
+  notify: restart apache_exporter

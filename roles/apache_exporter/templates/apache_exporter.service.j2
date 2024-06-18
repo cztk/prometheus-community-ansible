@@ -1,0 +1,39 @@
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=Prometheus apache_exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ apache_exporter_system_user }}
+Group={{ apache_exporter_system_group }}
+ExecStart={{ apache_exporter_binary_install_dir }}/apache_exporter \
+    '--scrape_uri="{{ apache_exporter_scrape_uri }}"' \
+    '--web.listen-address={{ apache_exporter_web_listen_address }}' \
+    '--telemetry.endpoint={{ apache_exporter_web_telemetry_path }}' \
+{% if apache_exporter_tls_server_config | length > 0 or apache_exporter_http_server_config | length > 0 or apache_exporter_basic_auth_users | length > 0 %}
+    '--web.config.file=/etc/apache_exporter/web_config.yaml' \
+{% endif %}
+    '--log.level={{ apache_exporter_log_level }}' \
+    '--log.format={{ apache_exporter_log_format }}'
+
+SyslogIdentifier=apache_exporter
+Restart=always
+RestartSec=1
+StartLimitInterval=0
+
+ProtectHome=yes
+NoNewPrivileges=yes
+
+{% if (ansible_facts.packages.systemd | first).version is version('232', '>=') %}
+ProtectSystem=strict
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=yes
+{% else %}
+ProtectSystem=full
+{% endif %}
+
+[Install]
+WantedBy=multi-user.target
